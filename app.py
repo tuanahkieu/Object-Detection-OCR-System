@@ -117,12 +117,17 @@ def predict():
             class_counts[name] = class_counts.get(name, 0) + 1
 
         response = {
-            "image": file.filename,
+            "success": True,
             "image_b64": img_b64,
             "inference_time_ms": inference_time,
             "total_detections": len(detections),
             "class_counts": class_counts,
-            "objects": detections,
+            "detections": detections,
+            "image_size": {
+                "width": image.width,
+                "height": image.height,
+            },
+            "model": "RT-DETR",
         }
         return jsonify(response)
 
@@ -143,5 +148,5 @@ def model_info():
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)
