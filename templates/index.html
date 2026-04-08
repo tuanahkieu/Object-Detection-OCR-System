@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RT-DETR · Nhận Diện Hình Ảnh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo-icon">🔍</div>
+  <h1>RT-DETR Vision</h1>
+  <span class="badge">Real-Time Detection Transformer</span>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- ① Upload panel (full width) -->
+  <div class="panel" id="upload-panel">
+    <div class="panel-header">
+      <span class="dot dot-blue"></span>
+      Tải ảnh lên
+    </div>
+
+    <div id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" />
+      <div class="drop-text">Kéo hoặc thả ảnh vào đây</div>
+      <div class="drop-sub">hoặc nhấn để chọn file · JPG, PNG, WEBP, BMP</div>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview-img" src="" alt="Preview" />
+      <div id="preview-name"></div>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Confidence &nbsp;<span class="ctrl-val" id="conf-val">0.25</span></label>
+        <input type="range" id="conf-slider" min="0.05" max="0.95" step="0.05" value="0.25"
+               oninput="document.getElementById('conf-val').textContent=parseFloat(this.value).toFixed(2)" />
+      </div>
+      <div class="ctrl-group">
+        <label>IOU &nbsp;<span class="ctrl-val" id="iou-val">0.45</span></label>
+        <input type="range" id="iou-slider" min="0.1" max="0.9" step="0.05" value="0.45"
+               oninput="document.getElementById('iou-val').textContent=parseFloat(this.value).toFixed(2)" />
+      </div>
+      <button id="btn-predict" onclick="runPredict()" disabled>
+        <span class="spinner" id="spinner"></span>
+        <span id="btn-text">⚡ Nhận diện</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ② Annotated image -->
+  <div class="panel" id="result-panel">
+    <div class="panel-header">
+      <span class="dot dot-green"></span>
+      Ảnh sau khi gán nhãn
+    </div>
+    <div id="result-body">
+      <div id="placeholder">
+        <div class="ph-icon">📷</div>
+        <p>Kết quả sẽ hiển thị ở đây</p>
+      </div>
+      <img id="result-img" src="" alt="Annotated Result" />
+    </div>
+    <div class="stats-bar" id="stats-bar" style="display:none">
+      <div class="stat-chip">
+        <span class="label">Model</span>
+        <span class="val">RT-DETR</span>
+      </div>
+      <div class="stat-chip">
+        <span class="label">Thời gian</span>
+        <span class="val" id="stat-time">—</span>
+      </div>
+      <div class="stat-chip">
+        <span class="label">Phát hiện</span>
+        <span class="val" id="stat-count">—</span>
+      </div>
+      <div class="stat-chip">
+        <span class="label">Kích thước</span>
+        <span class="val" id="stat-size">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ JSON output -->
+  <div class="panel" id="json-panel">
+    <div class="panel-header">
+      <span class="dot dot-amber"></span>
+      JSON · Kết quả nhận diện
+    </div>
+    <div class="json-toolbar">
+      <button onclick="copyJSON()">Copy JSON</button>
+      <button onclick="downloadJSON()">Download</button>
+      <button onclick="clearAll()">Xóa</button>
+    </div>
+    <div id="json-output">// Chạy nhận diện để xem kết quả JSON ở đây...</div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
