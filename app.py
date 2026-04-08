@@ -72,7 +72,7 @@ def predict():
                     color = (0, 0, 255)    # Màu Đỏ cho Table
                     thickness = 3          # Viền dày hơn cho Table
                 elif cls_name == 'Note':
-                    color = (0, 255, 0)    # Màu Xanh lá cho Note
+                    color = (128, 0, 128)    # Màu Xanh lá cho Note
                     thickness = 2
                 elif cls_name == 'PartDrawing':
                     color = (255, 0, 0)    # Màu Xanh dương cho PartDrawing
