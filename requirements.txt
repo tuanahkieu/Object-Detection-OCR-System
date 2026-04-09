@@ -19,3 +19,6 @@ Pillow
 numpy
 pandas
 matplotlib
+
+# --- OCR ---
+easyocr
