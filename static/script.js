@@ -68,6 +68,7 @@ async function runPredict() {
 
     // ③ JSON
     lastJSON = data;
+    updateOCRPanel(data.detections);
     document.getElementById('json-output').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
 
     showToast(`✅ Phát hiện ${data.total_detections} vật thể · ${data.inference_time_ms}ms`);
@@ -104,6 +105,38 @@ function syntaxHighlight(json) {
   );
 }
 
+function updateOCRPanel(detections) {
+  const ocrOutput = document.getElementById('ocr-output');
+  const ocrItems = detections
+    .filter(item => item.ocr_content && item.ocr_content.trim().length > 0)
+    .map((item, index) => ({
+      id: index + 1,
+      className: item.class,
+      text: item.ocr_content.trim(),
+    }));
+
+  if (ocrItems.length === 0) {
+    ocrOutput.innerHTML = '<p>Không tìm thấy chữ viết tay để hiển thị.</p>';
+    return;
+  }
+
+  ocrOutput.innerHTML = ocrItems.map(item => `
+    <div class="ocr-card">
+      <div class="ocr-card-header">${item.className} #${item.id}</div>
+      <div class="ocr-card-body">${escapeHtml(item.text)}</div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function copyJSON() {
   if (!lastJSON) { showToast('Chưa có kết quả!', true); return; }
   navigator.clipboard.writeText(JSON.stringify(lastJSON, null, 2));
@@ -127,6 +160,7 @@ function clearAll() {
   document.getElementById('placeholder').style.display = 'flex';
   document.getElementById('stats-bar').style.display   = 'none';
   document.getElementById('json-output').textContent   = '// Chạy nhận diện để xem kết quả JSON ở đây...';
+  document.getElementById('ocr-output').innerHTML     = '<p>Chữ viết tay nhận diện sẽ hiển thị ở đây sau khi chạy OCR.</p>';
   document.getElementById('btn-predict').disabled      = true;
   fileInput.value = '';
 }

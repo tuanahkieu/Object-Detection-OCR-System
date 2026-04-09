@@ -3,12 +3,14 @@ import io
 import base64
 import json
 import time
-import cv2          # Thêm thư viện vẽ OpenCV
-import numpy as np  # Thêm thư viện xử lý ma trận Numpy
+import cv2          
+import numpy as np  
 from flask import Flask, request, jsonify, send_from_directory
 from PIL import Image
-import torch
 from ultralytics import RTDETR
+
+# --- THÊM THƯ VIỆN EASYOCR (Chạy mượt 100% trên Mac) ---
+import easyocr
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -17,12 +19,49 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "best.pt")
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ── Load model once at startup ───────────────────────────────────────────────
+# ── Load RT-DETR model ──────────────────────────────────────────────────────
 print(f"[INFO] Loading RT-DETR model from: {MODEL_PATH}")
 model = RTDETR(MODEL_PATH)
 print(f"[INFO] Model loaded successfully. Classes: {model.names}")
 
+# ── Load EasyOCR model ──────────────────────────────────────────────────────
+print("[INFO] Loading EasyOCR model...")
+# Tải bộ não đọc cả tiếng Anh ('en') lẫn tiếng Việt ('vi'). Tự động chạy mượt trên Mac.
+reader = easyocr.Reader(['vi', 'en'])
+print("[INFO] EasyOCR loaded successfully.")
 
+def perform_easyocr_on_crop(cropped_img):
+    """Đọc chữ bằng EasyOCR với bộ lọc chuẩn mực cho Bản vẽ kỹ thuật."""
+    if cropped_img is None or cropped_img.size == 0:
+        return ""
+
+    try:
+        # --- BƯỚC 1: TIỀN XỬ LÝ ẢNH CHUYÊN SÂU ---
+        
+        # 1. Chuyển sang ảnh xám
+        gray_img = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
+        
+        # 2. Phóng to ảnh lên 2.5 lần bằng thuật toán CUBIC (Giúp nét chữ sắc sảo hơn, không bị vỡ)
+        height, width = gray_img.shape[:2]
+        resized_img = cv2.resize(gray_img, (int(width * 2.5), int(height * 2.5)), interpolation=cv2.INTER_CUBIC)
+
+        # 3. Lọc nhiễu (Denoise): "Ủi" phẳng các vết rỗ, nhiễu hạt trên nền giấy
+        denoised_img = cv2.fastNlMeansDenoising(resized_img, None, h=10, templateWindowSize=7, searchWindowSize=21)
+
+        # 4. Nhị phân hóa Otsu: Tự động tìm điểm cắt sáng/tối để biến nền thành Trắng tinh (255) và chữ thành Đen tuyền (0)
+        _, thresh_img = cv2.threshold(denoised_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+        # --- BƯỚC 2: GỌI EASYOCR ---
+        # Ảnh đã được xử lý quá đẹp (như bản scan), ta không cần ép EasyOCR dùng mag_ratio nữa để nó chạy tự nhiên
+        result = reader.readtext(thresh_img, detail=0, paragraph=True)
+        
+        if result:
+            return " ".join(result)
+            
+        return ""
+    except Exception as e:
+        print(f"[OCR ERROR] perform_easyocr_on_crop: {e}")
+        return ""
 # ── Routes ───────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -43,23 +82,20 @@ def predict():
         img_bytes = file.read()
         image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
         
-        # Chuyển ảnh PIL (RGB) sang Numpy Array (BGR) để OpenCV dễ dàng vẽ màu
         cv_img = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
-        # Get confidence threshold from request (default 0.25)
         conf = float(request.form.get("conf", 0.25))
         iou = float(request.form.get("iou", 0.45))
 
         # Run inference
         t0 = time.time()
         results = model.predict(image, conf=conf, iou=iou, verbose=False)
-        inference_time = round((time.time() - t0) * 1000, 1)  # ms
+        inference_time = round((time.time() - t0) * 1000, 1)
 
         result = results[0]
         detections = []
         boxes = result.boxes
 
-        # ── Xử lý JSON và Vẽ khung tùy chỉnh cùng lúc ────────────────────────
         if boxes is not None and len(boxes) > 0:
             for box in boxes:
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
@@ -67,42 +103,62 @@ def predict():
                 cls_id = int(box.cls[0])
                 cls_name = model.names[cls_id]
 
-                # --- 1. Tùy chỉnh màu sắc (Hệ màu BGR của OpenCV) ---
+                ocr_text = ""
+
+                # --- Xử lý vẽ khung & Đọc chữ ---
                 if cls_name == 'Table':
-                    color = (0, 0, 255)    # Màu Đỏ cho Table
-                    thickness = 3          # Viền dày hơn cho Table
+                    color = (0, 0, 255)    
+                    thickness = 3          
                 elif cls_name == 'Note':
-                    color = (128, 0, 129)    # Màu Xanh lá cho Note
-                    thickness = 2
-                elif cls_name == 'PartDrawing':
-                    color = (255, 0, 0)    # Màu Xanh dương cho PartDrawing
-                    thickness = 2
-                else:
-                    color = (0, 255, 255)  # Màu Vàng mặc định
+                    color = (0, 255, 0)
                     thickness = 2
 
-                # --- 2. Vẽ khung và nhãn lên ảnh cv_img ---
+                    # --- GỌI EASYOCR ĐỂ ĐỌC CHỮ ---
+                    try:
+                        x1i = max(0, int(x1))
+                        y1i = max(0, int(y1))
+                        x2i = min(cv_img.shape[1], int(x2))
+                        y2i = min(cv_img.shape[0], int(y2))
+                        
+                        cropped_img = cv_img[y1i:y2i, x1i:x2i]
+                        
+                        if cropped_img.size != 0:
+                            ocr_text = perform_easyocr_on_crop(cropped_img)
+                            if ocr_text:
+                                print(f"[OCR SUCCESS] Đã đọc được: {ocr_text}")
+                        else:
+                            print("[OCR WARNING] Vùng cắt bị rỗng")
+                    except Exception as e:
+                        print(f"[OCR ERROR] Lỗi hệ thống OCR: {e}")
+
+                elif cls_name == 'PartDrawing':
+                    color = (255, 0, 0)    
+                    thickness = 2
+                else:
+                    color = (0, 255, 255)  
+                    thickness = 2
+
+                # --- Vẽ khung ---
                 cv2.rectangle(cv_img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness)
                 label = f"{cls_name} {conf_val:.2f}"
                 (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-                cv2.rectangle(cv_img, (int(x1), int(y1) - 20), (int(x1) + tw, int(y1)), color, -1)
-                cv2.putText(cv_img, label, (int(x1), int(y1) - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                
+                # Tránh tình trạng nhãn bị tràn lên trên mất hút (Fix luôn lỗi hiển thị)
+                label_y = max(int(y1), 20) 
+                
+                cv2.rectangle(cv_img, (int(x1), label_y - 20), (int(x1) + tw, label_y), color, -1)
+                cv2.putText(cv_img, label, (int(x1), label_y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-                # --- 3. Đóng gói data JSON ---
+                # --- Đóng gói JSON ---
                 detections.append({
                     "id": len(detections) + 1,
                     "class": cls_name,
                     "confidence": round(conf_val, 2),
-                    "bbox": {
-                        "x1": int(x1),
-                        "y1": int(y1),
-                        "x2": int(x2),
-                        "y2": int(y2),
-                    },
-                    "ocr_content": ""
+                    "bbox": {"x1": int(x1), "y1": int(y1), "x2": int(x2), "y2": int(y2)},
+                    "ocr_content": ocr_text 
                 })
 
-        # ── Chuyển ảnh đã vẽ (BGR) ngược lại thành Base64 (RGB) ───────────
+        # --- Kết xuất ảnh ---
         annotated_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
         pil_annotated = Image.fromarray(annotated_rgb)
 
@@ -110,7 +166,6 @@ def predict():
         pil_annotated.save(buf, format="JPEG", quality=90)
         img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
 
-        # Count per class
         class_counts = {}
         for d in detections:
             name = d["class"]
@@ -123,11 +178,8 @@ def predict():
             "total_detections": len(detections),
             "class_counts": class_counts,
             "detections": detections,
-            "image_size": {
-                "width": image.width,
-                "height": image.height,
-            },
-            "model": "RT-DETR",
+            "image_size": {"width": image.width, "height": image.height},
+            "model": "RT-DETR + EasyOCR", 
         }
         return jsonify(response)
 
@@ -136,16 +188,14 @@ def predict():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/model-info")
 def model_info():
     return jsonify({
-        "model": "RT-DETR",
+        "model": "RT-DETR + EasyOCR",
         "classes": model.names,
         "num_classes": len(model.names),
         "model_path": MODEL_PATH,
     })
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))

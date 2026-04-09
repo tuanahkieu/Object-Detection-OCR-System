@@ -225,10 +225,43 @@ main {
 .stat-chip .val   { color: var(--text); font-weight: 600; }
 
 /* ── Section 3 – JSON Output ─────────────────────────────────── */
+#ocr-panel,
 #json-panel {
   display: flex;
   flex-direction: column;
   grid-column: 1 / -1;
+}
+#ocr-output {
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+  min-height: 120px;
+  max-height: 260px;
+  overflow-y: auto;
+  color: var(--text);
+}
+#ocr-output p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.ocr-card {
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.ocr-card-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent2);
+  margin-bottom: 6px;
+}
+.ocr-card-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .json-toolbar {
   display: flex; gap: 8px;
