@@ -12,9 +12,7 @@
 
 <!-- ── Header ──────────────────────────────────────────────────────────── -->
 <header>
-  <div class="logo-icon">🔍</div>
-  <h1>RT-DETR Vision</h1>
-  <span class="badge">Real-Time Detection Transformer</span>
+  <h1>Object Detection & OCR System</h1>
 </header>
 
 <!-- ── Main ────────────────────────────────────────────────────────────── -->
@@ -51,7 +49,7 @@
       </div>
       <button id="btn-predict" onclick="runPredict()" disabled>
         <span class="spinner" id="spinner"></span>
-        <span id="btn-text">⚡ Nhận diện</span>
+        <span id="btn-text">Gắn nhãn</span>
       </button>
     </div>
   </div>
@@ -64,7 +62,6 @@
     </div>
     <div id="result-body">
       <div id="placeholder">
-        <div class="ph-icon">📷</div>
         <p>Kết quả sẽ hiển thị ở đây</p>
       </div>
       <img id="result-img" src="" alt="Annotated Result" />
@@ -81,10 +78,6 @@
       <div class="stat-chip">
         <span class="label">Phát hiện</span>
         <span class="val" id="stat-count">—</span>
-      </div>
-      <div class="stat-chip">
-        <span class="label">Kích thước</span>
-        <span class="val" id="stat-size">—</span>
       </div>
     </div>
   </div>
