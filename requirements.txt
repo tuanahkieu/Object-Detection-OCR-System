@@ -4,9 +4,6 @@
 Flask
 Flask-Cors
 gunicorn
-fastapi
-uvicorn
-gradio
 
 # --- AI / Machine Learning ---
 torch
@@ -17,8 +14,6 @@ ultralytics
 opencv-python-headless
 Pillow
 numpy
-pandas
-matplotlib
 
 # --- OCR ---
 easyocr
