@@ -1,3 +1,13 @@
+---
+title: Object Detection OCR System
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Hệ thống Nhận diện và Xử lý OCR Bản vẽ Kỹ thuật
 
 Hệ thống được thiết kế để tự động nhận diện các thành phần trong bản vẽ kỹ thuật (PartDrawing, Note, Table), cắt rời các vùng (crop), và thực thi bóc tách văn bản (OCR) nhằm phân tích thiết kế một cách nhanh chóng và chính xác.
