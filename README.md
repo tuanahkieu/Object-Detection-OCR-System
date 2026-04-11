@@ -38,9 +38,12 @@ Clone repo này xuống và chạy:
 pip install -r requirements.txt
 ```
 
-### Bước 2. Cấu hình mô hình
-1. Do dung lượng tải lớn, weights của model (`best.pt`) đã được cung cấp trực tiếp vào trong source hoặc tải về qua link Google Drive (nếu có).
-2. Đặt model `best.pt` vào thư mục gốc của project ngang hàng với `app.py`.
+### Bước 2. Tải trọng số mô hình (Model Weights)
+Do dung lượng file khá lớn, model `best.pt` đã được tự động hóa tải về từ Google Drive. Bạn chỉ cần chạy lệnh sau:
+```bash
+python download_model.py
+```
+*(Hệ thống sẽ tự động tải file `best.pt` nặng hàng trăm MB và đặt đúng vào thư mục gốc cho bạn).*
 
 ### Bước 3. Khởi động dịch vụ Server
 ```bash

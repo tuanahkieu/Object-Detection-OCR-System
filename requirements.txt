@@ -17,3 +17,6 @@ numpy
 
 # --- OCR ---
 easyocr
+
+# --- Utilities ---
+gdown
