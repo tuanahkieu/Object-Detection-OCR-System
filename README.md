@@ -88,4 +88,4 @@ Hệ thống tự nhận biết và lưu file crop theo template: `{tên_ảnh}_
 
 ---
 
-*Contact: Tuan Anh (tuankieu@example.com - Update if needed)*
+*Contact: Tuan Anh (anhkieuductuan@gmail.com)*
