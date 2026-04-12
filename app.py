@@ -43,19 +43,17 @@ def perform_easyocr_on_crop(cropped_img, is_table=False):
         # 1. Chuyển sang ảnh xám
         gray_img = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
         
-        # 2. Phóng to 2x (nhẹ hơn 2.5x nhiều)
-        height, width = gray_img.shape[:2]
-        resized_img = cv2.resize(gray_img, (int(width * 2.0), int(height * 2.0)), interpolation=cv2.INTER_CUBIC)
+        # (Bỏ phóng to 2x vì trên CPU của HF Space việc này khiến EasyOCR chậm lên 4 lần, gây ra lỗi Timeout/500)
+        
+        # 2. Gaussian Blur cực nhẹ
+        blurred_img = cv2.GaussianBlur(gray_img, (3, 3), 0)
 
-        # 3. Bỏ qua Denoise siêu chậm (fastNlMeansDenoising), thay bằng GaussianBlur nhẹ (rất nhanh!)
-        blurred_img = cv2.GaussianBlur(resized_img, (3, 3), 0)
-
-        # 4. Nhị phân hóa Otsu: Tự động tìm điểm cắt sáng/tối để biến nền thành Trắng tinh (255) và chữ thành Đen tuyền (0)
+        # 3. Nhị phân hóa Otsu
         _, thresh_img = cv2.threshold(blurred_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         # --- BƯỚC 2: GỌI EASYOCR ---
         if not is_table:
-            # Ảnh đã được xử lý quá đẹp (như bản scan), ta không cần ép EasyOCR dùng mag_ratio nữa để nó chạy tự nhiên
+            # Chạy tự nhiên bằng EasyOCR
             result = reader.readtext(thresh_img, detail=0, paragraph=True)
             
             if result:
