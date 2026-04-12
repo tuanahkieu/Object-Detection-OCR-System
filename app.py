@@ -28,8 +28,9 @@ print(f"[INFO] Model loaded successfully. Classes: {model.names}")
 
 # ── Load EasyOCR model ──────────────────────────────────────────────────────
 print("[INFO] Loading EasyOCR model...")
-# Tải bộ não đọc cả tiếng Anh ('en') lẫn tiếng Việt ('vi'). Tự động chạy mượt trên Mac.
-reader = easyocr.Reader(['vi', 'en'])
+# Tải bộ não đọc cả tiếng Anh ('en') lẫn tiếng Việt ('vi').
+# QUAN TRỌNG: Thêm quantize=False để tắt nén model LSTM. Trên CPU của Hugging Face, quantize=True (mặc định) gây lỗi chạy cực kì chậm dẫn tới chết server!
+reader = easyocr.Reader(['vi', 'en'], gpu=False, quantize=False)
 print("[INFO] EasyOCR loaded successfully.")
 
 def perform_easyocr_on_crop(cropped_img, is_table=False):
