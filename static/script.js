@@ -55,10 +55,19 @@ async function runPredict() {
 
   try {
     const res = await fetch('/predict', { method: 'POST', body: formData });
-    const data = await res.json();
+    
+    // Đọc text response trước để tránh lỗi parse khi Nginx trả về lỗi HTML (504 Timeout, 502)
+    const textData = await res.text();
+    let data;
+    try {
+      data = JSON.parse(textData);
+    } catch (err) {
+      console.error("Server HTML Error Response:", textData);
+      throw new Error(`Yêu cầu bị Timeout hoặc server lỗi (${res.status}). Vui lòng thử lại với ảnh dung lượng nhỏ hơn hoặc cấu hình Nginx proxy. Tóm tắt: ${textData.substring(0, 40).replace(/</g, "")}...`);
+    }
 
     if (!res.ok || data.error) {
-      throw new Error(data.error || 'Lỗi server');
+      throw new Error(data.error || `Lỗi server: ${res.status}`);
     }
 
     // ① Update annotated image

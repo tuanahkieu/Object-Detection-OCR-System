@@ -43,15 +43,15 @@ def perform_easyocr_on_crop(cropped_img, is_table=False):
         # 1. Chuyển sang ảnh xám
         gray_img = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
         
-        # 2. Phóng to ảnh lên 2.5 lần bằng thuật toán CUBIC (Giúp nét chữ sắc sảo hơn, không bị vỡ)
+        # 2. Phóng to 2x (nhẹ hơn 2.5x nhiều)
         height, width = gray_img.shape[:2]
-        resized_img = cv2.resize(gray_img, (int(width * 2.5), int(height * 2.5)), interpolation=cv2.INTER_CUBIC)
+        resized_img = cv2.resize(gray_img, (int(width * 2.0), int(height * 2.0)), interpolation=cv2.INTER_CUBIC)
 
-        # 3. Lọc nhiễu (Denoise): "Ủi" phẳng các vết rỗ, nhiễu hạt trên nền giấy
-        denoised_img = cv2.fastNlMeansDenoising(resized_img, None, h=10, templateWindowSize=7, searchWindowSize=21)
+        # 3. Bỏ qua Denoise siêu chậm (fastNlMeansDenoising), thay bằng GaussianBlur nhẹ (rất nhanh!)
+        blurred_img = cv2.GaussianBlur(resized_img, (3, 3), 0)
 
         # 4. Nhị phân hóa Otsu: Tự động tìm điểm cắt sáng/tối để biến nền thành Trắng tinh (255) và chữ thành Đen tuyền (0)
-        _, thresh_img = cv2.threshold(denoised_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        _, thresh_img = cv2.threshold(blurred_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         # --- BƯỚC 2: GỌI EASYOCR ---
         if not is_table:
