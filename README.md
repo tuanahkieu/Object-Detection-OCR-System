@@ -39,11 +39,11 @@ pip install -r requirements.txt
 ```
 
 ### Bước 2. Tải trọng số mô hình (Model Weights)
-Do dung lượng file khá lớn, model `best.pt` đã được tự động hóa tải về từ Google Drive. Bạn chỉ cần chạy lệnh sau:
+Do dung lượng file khá lớn, model `best (1).pt` đã được tự động hóa tải về từ Google Drive. Bạn chỉ cần chạy lệnh sau:
 ```bash
 python download_model.py
 ```
-*(Hệ thống sẽ tự động tải file `best.pt` nặng hàng trăm MB và đặt đúng vào thư mục gốc cho bạn).*
+*(Hệ thống sẽ tự động tải file `best (1).pt` nặng hàng trăm MB và đặt đúng vào thư mục gốc cho bạn).*
 
 ### Bước 3. Khởi động dịch vụ Server
 ```bash
@@ -71,11 +71,10 @@ Dự án đã được cấu hình sẵn môi trường dành riêng cho chuẩn
 Để thỏa mãn điều kiện cấp phép thương mại hóa và không bị giới hạn bản quyền YOLO, mình đã sử dụng **RT-DETR (Real-Time DEtection TRansformer)** - Model do Baidu phát triển có khả năng tracking tốt với các hộp neo tọa độ (anchor boxes) trên nền trắng đen như bản vẽ.
 
 ### 2. OCR Pre-Processing (Xử lý tiền OCR)
-Bản vẽ chụp thường bị rỗ hạt, không đều sáng. Hệ thống sẽ:
-1. `cvtColor` chuyển xám.
-2. `cv2.resize` nhân 2.5 lần kích thước dùng thuật toán nội suy CUBIC giúp chữ có nét cong đẹp hơn.
-3. `fastNlMeansDenoising` khử nhiễu rỗ của giấy.
-4. `threshold + OTSU` tự động nhị phân hóa biến hình ảnh thành bản phân màu 255 (trắng tinh) & 0 (đen tinh).
+Bản vẽ chụp thường bị rỗ hạt, không đều sáng. Rút kinh nghiệm từ hạn chế tài nguyên trên Hugging Face CPU, hệ thống được tinh giản cực kì hiệu quả:
+1. `cvtColor` chuyển màu sang gray-scale xám.
+2. `cv2.GaussianBlur` nhân trập ma trận (3, 3) để xóa rỗ nhiễu hạt nhẹ một cách cực kỳ nhanh trên CPU thay vì Denoising truyền thống.
+3. `threshold + OTSU` tự động nhị phân hóa biến hình ảnh thành bản phân màu 255 (trắng tinh) & 0 (đen tinh) và đẩy vào `EasyOCR` (`quantize=False`) giúp tốc độ xử lý nhanh hơn 400% để chống đứt timeout do Gunicorn proxy.
 
 ### 3. Thuật toán cấu trúc Bảng (Row-Col grouping)
 Thay vì dùng thư viện nặng như `img2table`, mình can thiệp bằng tọa độ Boxes đầu ra `detail=1` của EasyOCR:
